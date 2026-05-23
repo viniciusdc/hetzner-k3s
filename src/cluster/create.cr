@@ -1,13 +1,18 @@
 require "../configuration/loader"
 require "../hetzner/ssh_key/create"
 require "../kubernetes/installer"
+require "../kubernetes/util"
 require "../util/ssh"
 require "./firewall_manager"
 require "./instance_builder"
 require "./load_balancer_manager"
 require "./network_manager"
+require "./reconcile"
 
 class Cluster::Create
+  include Kubernetes::Util
+  include Reconcile
+
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client { configuration.hetzner_client }
   private getter settings : Configuration::Main { configuration.settings }
@@ -66,6 +71,8 @@ class Cluster::Create
     create_instances_concurrently(worker_instances, kubernetes_workers_installation_queue_channel)
 
     completed_channel.receive
+
+    reconcile_static_pools!
 
     warn_if_not_protected
   end
@@ -150,5 +157,9 @@ class Cluster::Create
 
   private def master_created_instances : Array(Hetzner::Instance)
     instances.select { |instance| master_instances.any? { |factory| factory.instance_name == instance.name } }
+  end
+
+  private def default_log_prefix
+    "Cluster create"
   end
 end

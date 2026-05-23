@@ -53,6 +53,16 @@ module Kubernetes::Util
     execute_kubectl_command(command, error_message)
   end
 
+  def drain_node(node_name : String, timeout_seconds : Int32 = 120, grace_period_seconds : Int32 = 60) : Util::Shell::CommandResult
+    command = "kubectl drain #{node_name} --ignore-daemonsets --delete-emptydir-data --timeout=#{timeout_seconds}s --grace-period=#{grace_period_seconds}"
+    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: true)
+  end
+
+  def delete_node_from_kubernetes(node_name : String) : Util::Shell::CommandResult
+    command = "kubectl delete node #{node_name} --ignore-not-found=true"
+    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
+  end
+
   def fetch_manifest(url : String) : String
     response = Crest.get(url)
 
