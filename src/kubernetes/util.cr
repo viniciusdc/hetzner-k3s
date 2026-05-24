@@ -53,14 +53,14 @@ module Kubernetes::Util
     execute_kubectl_command(command, error_message)
   end
 
-  def drain_node(node_name : String, timeout_seconds : Int32 = 120, grace_period_seconds : Int32 = 60) : Util::Shell::CommandResult
+  def drain_node(node_name : String, log_prefix : String = "", timeout_seconds : Int32 = 120, grace_period_seconds : Int32 = 60) : Util::Shell::CommandResult
     command = "kubectl drain #{node_name} --ignore-daemonsets --delete-emptydir-data --timeout=#{timeout_seconds}s --grace-period=#{grace_period_seconds}"
-    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: true)
+    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: true, log_prefix: log_prefix)
   end
 
-  def delete_node_from_kubernetes(node_name : String) : Util::Shell::CommandResult
+  def delete_node_from_kubernetes(node_name : String, log_prefix : String = "") : Util::Shell::CommandResult
     command = "kubectl delete node #{node_name} --ignore-not-found=true"
-    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
+    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false, log_prefix: log_prefix)
   end
 
   def fetch_manifest(url : String) : String

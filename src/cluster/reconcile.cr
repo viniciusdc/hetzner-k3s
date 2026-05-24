@@ -7,6 +7,8 @@ require "../util/shell"
 
 module Cluster
   module Reconcile
+    RECONCILE_LOG_PREFIX = "Reconcile"
+
     # Reconcile the set of static worker instances against the rendered config.
     # Drains and deletes any cluster-labeled instance that is no longer present
     # in worker_node_pools. Autoscaler-managed instances and masters are never
@@ -21,14 +23,13 @@ module Cluster
       extras = cluster_set - expected - autoscaler_set
 
       if extras.empty?
-        puts
-        puts "Reconcile: cluster state matches rendered config, nothing to remove.".colorize(:green)
+        log_line "...cluster state matches rendered config, nothing to remove.", log_prefix: RECONCILE_LOG_PREFIX
         return
       end
 
-      puts
-      puts "Reconcile: removing #{extras.size} stale worker instance(s): #{extras.join(", ")}".colorize(:yellow)
+      log_line "Removing #{extras.size} stale worker instance(s): #{extras.join(", ")}", log_prefix: RECONCILE_LOG_PREFIX
       drain_and_delete_extras(extras)
+      log_line "...reconcile complete.", log_prefix: RECONCILE_LOG_PREFIX
     end
 
     private def expected_static_pool_instance_names : Array(String)
@@ -94,18 +95,21 @@ module Cluster
         semaphore.send(nil)
         spawn do
           begin
-            puts "Draining node #{instance_name}..."
-            drain_result = drain_node(instance_name)
+            prefix = "#{RECONCILE_LOG_PREFIX} #{instance_name}"
+
+            log_line "Draining node...", log_prefix: prefix
+            drain_result = drain_node(instance_name, log_prefix: prefix)
 
             unless drain_result.success?
-              puts "Warning: drain failed for #{instance_name}, skipping delete. Re-run after resolving the eviction issue.".colorize(:yellow)
+              log_line "...drain failed, skipping delete. Re-run after resolving the eviction issue.", log_prefix: prefix
               channel.send(instance_name)
               next
             end
 
-            delete_node_from_kubernetes(instance_name)
+            log_line "...node drained", log_prefix: prefix
 
-            puts "Deleting Hetzner instance #{instance_name}..."
+            delete_node_from_kubernetes(instance_name, log_prefix: prefix)
+
             Hetzner::Instance::Delete.new(
               settings: settings,
               hetzner_client: hetzner_client,
@@ -128,7 +132,7 @@ module Cluster
       end
 
       unless errors.empty?
-        errors.each { |e| puts "Reconcile error: #{e.message}".colorize(:red) }
+        errors.each { |e| log_line "Error: #{e.message}", log_prefix: RECONCILE_LOG_PREFIX }
       end
     end
   end
