@@ -27,9 +27,23 @@ module Cluster
         return
       end
 
-      log_line "Removing #{extras.size} stale worker instance(s): #{extras.join(", ")}", log_prefix: RECONCILE_LOG_PREFIX
+      log_line "The following worker instance(s) will be drained and removed:", log_prefix: RECONCILE_LOG_PREFIX
+      extras.each { |name| log_line "  - #{name}", log_prefix: RECONCILE_LOG_PREFIX }
+
+      unless force || prompt_for_confirmation
+        log_line "...skipped, no instances were removed. Re-run with --force to skip this prompt.", log_prefix: RECONCILE_LOG_PREFIX
+        return
+      end
+
+      log_line "Removing #{extras.size} stale worker instance(s)...", log_prefix: RECONCILE_LOG_PREFIX
       drain_and_delete_extras(extras)
       log_line "...reconcile complete.", log_prefix: RECONCILE_LOG_PREFIX
+    end
+
+    private def prompt_for_confirmation : Bool
+      print "[#{RECONCILE_LOG_PREFIX}] Proceed? Type 'yes' to confirm: "
+      input = gets.try(&.strip).try(&.downcase)
+      input == "yes"
     end
 
     private def expected_static_pool_instance_names : Array(String)

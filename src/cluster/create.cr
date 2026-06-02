@@ -44,8 +44,9 @@ class Cluster::Create
   private getter network_manager : NetworkManager
   private getter load_balancer_manager : LoadBalancerManager
   private getter firewall_manager : FirewallManager
+  private getter force : Bool
 
-  def initialize(@configuration)
+  def initialize(@configuration, @force : Bool = false)
     @network_manager = NetworkManager.new(settings, hetzner_client)
     @load_balancer_manager = LoadBalancerManager.new(settings, hetzner_client)
     @firewall_manager = FirewallManager.new(settings, hetzner_client)

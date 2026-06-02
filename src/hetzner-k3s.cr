@@ -53,6 +53,12 @@ module Hetzner::K3s
         required: false,
         default: false
 
+      define_flag force : Bool,
+        description: "Skip the confirmation prompt when reconcile_node_pools removes stale worker instances",
+        long: "force",
+        required: false,
+        default: false
+
       def run
         configuration = ::Hetzner::K3s::CLI.load_configuration(
           flags.configuration_file_path,
@@ -61,7 +67,7 @@ module Hetzner::K3s
           :create,
           skip_current_ip_validation: flags.skip_current_ip_validation
         )
-        Cluster::Create.new(configuration: configuration).run
+        Cluster::Create.new(configuration: configuration, force: flags.force).run
         ::Hetzner::K3s::CLI.print_sponsor_message unless flags.quiet
       end
     end
